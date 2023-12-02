@@ -35,6 +35,7 @@ return {
         shade = "dark",
         percentage = 0.01, -- percentage of the shade to apply to the inactive window, -- dims inactive windows
       },
+      transparent_background = true,
       on_colors = function(colors)
       end,
     },
