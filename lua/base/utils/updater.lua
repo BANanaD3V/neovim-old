@@ -1,30 +1,28 @@
---- ### Nvim Updater
+--- ### Nvim Updater functions
 --
--- Nvim Updater utilities to use within Nvim and user configurations.
+--  DESCRIPTION:
+--  Functions for the nvim updater commands in ../3-autocmds.lua
 --
--- This module can also loaded with `local updater = require("base.utils.updater")`
+--  While you could technically delete this file, and the update commands
+--  in the autocmds file, we encourage you to keep it, as it is a great way to:
+--  * Freeze your plugins versions.
+--  * Download the latest version of your config, assuming you use nvim in more
+--    than one device.
 --
--- @module base.utils.updater
--- @see base.utils
--- @copyright 2022
--- @license GNU General Public License v3.0
-
 --    Functions:
---       -> generate_snapshot   → Snapshot of the plugins installed.
---       -> version             →
---       -> changelog           →
---       -> attempt_update      →
---       -> update_packages     → Sync Packer and then update Mason.
---       -> create_rollback     → create rollback file before updating.
---       -> rollback            → Nvim's rollback to a saved previous version.
---       -> update              →
+--      -> generate_snapshot   → used by :NvimFreezePluginVersions.
+--      -> version             → used by :NvimVersion.
+--      -> changelog           → used by :NvimChangeLog.
+--      -> update_packages     → used by :NvimUpdatePlugins.
+--      -> create_rollback     → ured by :NvimRollbackCreate.
+--      -> rollback            → used by :NvimRollbackRestore.
+--      -> attempt_update      → helper for update.
+--      -> update              → used by :NvimUpdateConfig.
 
+local utils = require "base.utils"
 local git = require "base.utils.git"
 
 local M = {}
-
-local utils = require "base.utils"
-local notify = utils.notify
 
 local function echo(messages)
   -- if no parameter provided, echo a new line
@@ -51,6 +49,7 @@ function M.generate_snapshot(write)
     prev_snapshot[plugin[1]] = plugin
   end
   local plugins = assert(require("lazy").plugins())
+  table.sort(plugins, function(l, r) return l[1] < r[1] end)
   local function git_commit(dir)
     local commit =
         assert(utils.cmd("git -C " .. dir .. " rev-parse HEAD", false))
@@ -61,9 +60,6 @@ function M.generate_snapshot(write)
     file:write "return {\n"
   end
   local snapshot = vim.tbl_map(function(plugin)
-    if not plugin[1] and plugin.name == "lazy.nvim" then
-      plugin[1] = "folke/lazy.nvim"
-    end
     plugin =
     { plugin[1], commit = git_commit(plugin.dir), version = plugin.version }
     if prev_snapshot[plugin[1]] and prev_snapshot[plugin[1]].version then
@@ -81,10 +77,10 @@ function M.generate_snapshot(write)
     return plugin
   end, plugins)
   if file then
-    file:write "}"
+    file:write "}\n"
     file:close()
   end
-  notify "Lazy packages locked to their current version."
+  utils.notify("Lazy packages locked to their current version.")
   return snapshot
 end
 
@@ -96,7 +92,7 @@ function M.version(quiet)
   if base.updater.options.channel ~= "stable" then
     version = ("nightly (%s)"):format(version)
   end
-  if version and not quiet then notify("Version: " .. version) end
+  if version and not quiet then utils.notify("Version: " .. version) end
   return version
 end
 
@@ -108,18 +104,6 @@ function M.changelog(quiet)
   vim.list_extend(summary, git.pretty_changelog(git.get_commit_range()))
   if not quiet then echo(summary) end
   return summary
-end
-
---- Attempt an update of Nvim
---- @param target string The target if checking out a specific tag or commit or nil if just pulling
-local function attempt_update(target, opts)
-  -- if updating to a new stable version or a specific commit checkout the provided target
-  if opts.channel == "stable" or opts.commit then
-    return git.checkout(target, false)
-    -- if no target, pull the latest
-  else
-    return git.pull(false)
-  end
 end
 
 --- Cancelled update message
@@ -148,7 +132,7 @@ function M.create_rollback(write)
     file:close()
   end
   -- Rollback file created
-  notify(
+  utils.notify(
     "Rollback file created in ~/.cache/nvim\n\npointing to commit:\n"
     .. snapshot.commit
     .. "  \n\nYou can use :NvimRollbackRestore to revert ~/.config to this state."
@@ -161,10 +145,23 @@ function M.rollback()
   local rollback_avail, rollback_opts =
       pcall(dofile, base.updater.rollback_file)
   if not rollback_avail then
-    notify("No rollback file available", vim.log.levels.ERROR)
+    utils.notify("No rollback file available", vim.log.levels.ERROR)
     return
   end
   M.update(rollback_opts)
+end
+
+
+--- Attempt an update of Nvim
+--- @param target string The target if checking out a specific tag or commit or nil if just pulling
+local function attempt_update(target, opts)
+  -- if updating to a new stable version or a specific commit checkout the provided target
+  if opts.channel == "stable" or opts.commit then
+    return git.checkout(target, false)
+    -- if no target, pull the latest
+  else
+    return git.pull(false)
+  end
 end
 
 --- Nvim's updater function
@@ -177,7 +174,7 @@ function M.update(opts)
   )
   -- if the git command is not available, then throw an error
   if not git.available() then
-    notify(
+    utils.notify(
       "git command is not available, please verify it is accessible in a command line. This may be an issue with your PATH",
       vim.log.levels.ERROR
     )
@@ -186,7 +183,7 @@ function M.update(opts)
 
   -- if installed with an external package manager, disable the internal updater
   if not git.is_repo() then
-    notify(
+    utils.notify(
       "Updater not available for non-git installations",
       vim.log.levels.ERROR
     )
@@ -247,7 +244,7 @@ function M.update(opts)
   local source = git.local_head() -- calculate current commit
   local target                    -- calculate target commit
   if is_stable then               -- if stable get tag commit
-    local version_search = base.updater.nvim_config_stable_version or "latest"
+    local version_search = base.updater.stable_version_release or "latest"
     opts.version = git.latest_version(git.get_versions(version_search))
     if not opts.version then -- continue only if stable version is found
       vim.api.nvim_err_writeln("Error finding version: " .. version_search)

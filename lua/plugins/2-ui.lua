@@ -2,15 +2,17 @@
 -- Things that make the GUI better.
 
 --    Sections:
---       -> catppuccin                  [theme]
+--       -> tokyonight                  [theme]
+--       -> astrotheme                  [theme]
 --       -> alpha-nvim                  [greeter]
 --       -> nvim-notify                 [notifications]
---       -> indent-blankline.nvim       [guides]
+--       -> mini.indentscope            [guides]
 --       -> heirline                    [statusbar]
 --       -> telescope                   [search]
 --       -> telescope-fzf-native.nvim   [search backend]
 --       -> smart-splits                [window-dimming]
 --       -> dressing.nvim               [better ui elements]
+--       -> noice.nvim                  [better cmd/search line]
 --       -> nvim-web-devicons           [icons | ui]
 --       -> lspkind.nvim                [icons | lsp]
 --       -> nvim-scrollbar              [scrollbar]
@@ -19,8 +21,12 @@
 --       -> which-key                   [on-screen keybinding]
 
 local utils = require "base.utils"
+local windows = vim.fn.has('win32') == 1             -- true if on windows
+local android = vim.fn.isdirectory('/system') == 1   -- true if on android
 
 return {
+
+
   -- catppuccin [theme]
   -- https://github.com/catppuccin/nvim
   {
@@ -41,12 +47,23 @@ return {
     },
   },
 
+
+  --  astrotheme [theme]
+  --  https://github.com/AstroNvim/astrotheme
+  {
+    "AstroNvim/astrotheme",
+    event = "User LoadColorSchemes",
+    opts = {
+      palette = "astrodark",
+      plugins = { ["dashboard-nvim"] = true },
+    },
+  },
+
   --  alpha-nvim [greeter]
   --  https://github.com/goolord/alpha-nvim
   {
     "goolord/alpha-nvim",
     cmd = "Alpha",
-    event = "VeryLazy",
     -- setup header and buttonts
     opts = function()
       local dashboard = require "alpha.themes.dashboard"
@@ -90,23 +107,55 @@ return {
       --   [[   \ \_\ \_\ \____\ \____/ \ `\___/\ \_\ \_\ \_\ \_\]],
       --   [[    \/_/\/_/\/____/\/___/   `\/__/  \/_/\/_/\/_/\/_/]],
       -- }
-      dashboard.section.header.val = {
-        [[                __                ]],
-        [[  ___   __  __ /\_\    ___ ___    ]],
-        [[/' _ `\/\ \/\ \\/\ \ /' __` __`\  ]],
-        [[/\ \/\ \ \ \_/ |\ \ \/\ \/\ \/\ \ ]],
-        [[\ \_\ \_\ \___/  \ \_\ \_\ \_\ \_\]],
-        [[ \/_/\/_/\/__/    \/_/\/_/\/_/\/_/]],
+      --  dashboard.section.header.val = {
+      --   '                                                     ',
+      --   '  ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗ ',
+      --   '  ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║ ',
+      --   '  ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║ ',
+      --   '  ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║ ',
+      --   '  ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║ ',
+      --   '  ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝ ',
+      --   '                                                     ',
+      -- }
+      -- dashboard.section.header.val = {
+      --   [[                __                ]],
+      --   [[  ___   __  __ /\_\    ___ ___    ]],
+      --   [[/' _ `\/\ \/\ \\/\ \ /' __` __`\  ]],
+      --   [[/\ \/\ \ \ \_/ |\ \ \/\ \/\ \/\ \ ]],
+      --   [[\ \_\ \_\ \___/  \ \_\ \_\ \_\ \_\]],
+      --   [[ \/_/\/_/\/__/    \/_/\/_/\/_/\/_/]],
+      -- }
+
+      if android then dashboard.section.header.val = {
+        [[         __                ]],
+        [[ __  __ /\_\    ___ ___    ]],
+        [[/\ \/\ \\/\ \ /' __` __`\  ]],
+        [[\ \ \_/ |\ \ \/\ \/\ \/\ \ ]],
+        [[ \ \___/  \ \_\ \_\ \_\ \_\]],
+        [[  \/__/    \/_/\/_/\/_/\/_/]],
+       }
+      else dashboard.section.header.val = {
+                 [[                                    __                ]],
+                 [[                      ___   __  __ /\_\    ___ ___    ]],
+                 [[                    /' _ `\/\ \/\ \\/\ \ /' __` __`\  ]],
+                 [[                    /\ \/\ \ \ \_/ |\ \ \/\ \/\ \/\ \ ]],
+                 [[                    \ \_\ \_\ \___/  \ \_\ \_\ \_\ \_\]],
+                 [[                     \/_/\/_/\/__/    \/_/\/_/\/_/\/_/]],
       }
+      end
 
       dashboard.section.header.opts.hl = "DashboardHeader"
       vim.cmd "highlight DashboardHeader guifg=#F7778F"
+
+      -- If on windows, don't show the 'ranger' button
+      local ranger_button = dashboard.button("r", "🐍 Ranger  ", "<cmd>RnvimrToggle<CR>")
+      if windows then ranger_button = nil end
 
       -- Buttons
       dashboard.section.buttons.val = {
         dashboard.button("n", "📄 New     ", "<cmd>ene<CR>"),
         dashboard.button("e", "🌺 Recent  ", "<cmd>Telescope oldfiles<CR>"),
-        dashboard.button("r", "🐍 Ranger  ", "<cmd>RnvimrToggle<CR>"),
+        ranger_button,
         dashboard.button(
           "s",
           "🔎 Sessions",
@@ -124,7 +173,7 @@ return {
       dashboard.config.layout[3].val =
           vim.fn.max { 2, vim.fn.floor(vim.fn.winheight(0) * 0.10) } -- Above buttons
 
-      -- Disablel autocmd and return
+      -- Disable autocmd and return
       dashboard.config.opts.noautocmd = true
       return dashboard
     end,
@@ -162,7 +211,19 @@ return {
     end,
     opts = {
       on_open = function(win)
-        vim.api.nvim_win_set_config(win, { zindex = 1000 })
+        vim.api.nvim_win_set_config(win, { zindex = 175 })
+        if not vim.g.notifications_enabled then
+          vim.api.nvim_win_close(win, true)
+        end
+        if not package.loaded["nvim-treesitter"] then
+          pcall(require, "nvim-treesitter")
+        end
+        vim.wo[win].conceallevel = 3
+        local buf = vim.api.nvim_win_get_buf(win)
+        if not pcall(vim.treesitter.start, buf, "markdown") then
+          vim.bo[buf].syntax = "markdown"
+        end
+        vim.wo[win].spell = false
       end,
     },
     config = function(_, opts)
@@ -171,69 +232,48 @@ return {
       vim.notify = notify
     end,
   },
-  -- Telescope integration (:Telescope notify)
-  {
-    "nvim-telescope/telescope.nvim",
-    dependency = { "rcarriga/nvim-notify" },
-    cmd = "Telescope notify",
-    opts = function() require("telescope").load_extension "notify" end,
-  },
 
-  --  Code identation [guides]
-  --  https://github.com/lukas-reineke/indent-blankline.nvim
+  --  mini.indentscope [guides]
+  --  https://github.com/echasnovski/mini.indentscope
   {
-    "lukas-reineke/indent-blankline.nvim",
-    event = "User BaseFile",
+    "echasnovski/mini.indentscope",
+    event = { "BufReadPre", "BufNewFile" },
     opts = {
-      buftype_exclude = {
-        "nofile",
-        "terminal",
-      },
-      filetype_exclude = {
-        "help",
-        "startify",
-        "aerial",
-        "alpha",
-        "dashboard",
-        "lazy",
-        "neogitstatus",
-        "NvimTree",
-        "neo-tree",
-        "Trouble",
-        "ranger",
-        "rnvimr",
-      },
-      context_patterns = {
-        "class",
-        "return",
-        "function",
-        "method",
-        "^if",
-        "^while",
-        "jsx_element",
-        "^for",
-        "^object",
-        "^table",
-        "block",
-        "arguments",
-        "if_statement",
-        "else_clause",
-        "jsx_element",
-        "jsx_self_closing_element",
-        "try_statement",
-        "catch_clause",
-        "import_statement",
-        "operation_type",
-      },
-      show_trailing_blankline_indent = false,
-      use_treesitter = true,
-      char = "▏",
-      context_char = "▏",
-      show_current_context = true,
+      draw = { delay = 0, animation = function() return 0 end },
+      options = { border = "top", try_as_border = true },
+      symbol = "▏",
     },
+    config = function(_, opts)
+      require("mini.indentscope").setup(opts)
+
+      -- Disable for certain filetypes
+      vim.api.nvim_create_autocmd({ "FileType" }, {
+        desc = "Disable indentscope for certain filetypes",
+        callback = function()
+          local ignored_filetypes = {
+            "aerial",
+            "dashboard",
+            "help",
+            "lazy",
+            "leetcode.nvim",
+            "mason",
+            "neo-tree",
+            "NvimTree",
+            "neogitstatus",
+            "notify",
+            "startify",
+            "toggleterm",
+            "Trouble"
+          }
+          if vim.tbl_contains(ignored_filetypes, vim.bo.filetype) then
+            vim.b.miniindentscope_disable = true
+          end
+        end,
+      })
+    end
   },
 
-  --  [statusbar]
+  --  heirline [statusbar]
   --  https://github.com/rebelot/heirline.nvim
   {
     "rebelot/heirline.nvim",
@@ -242,64 +282,39 @@ return {
       local status = require "base.utils.status"
       return {
         opts = {
-          -- Disable the winbar for the next special buffers
           disable_winbar_cb = function(args)
             return not require("base.utils.buffer").is_valid(args.buf)
-                or status.condition.buffer_matches({
-                  buftype = {
-                    "terminal",
-                    "prompt",
-                    "nofile",
-                    "help",
-                    "quickfix",
-                  },
-                  filetype = {
-                    "NvimTree",
-                    "neo%-tree",
-                    "dashboard",
-                    "Outline",
-                    "aerial",
-                  },
-                }, args.buf)
+              or status.condition.buffer_matches({
+                buftype = { "terminal", "prompt", "nofile", "help", "quickfix" },
+                filetype = { "NvimTree", "neo%-tree", "dashboard", "Outline", "aerial" },
+              }, args.buf)
           end,
         },
-        statusline = {
-                       -- statusline
+        statusline = { -- statusline
           hl = { fg = "fg", bg = "bg" },
           status.component.mode(),
           status.component.git_branch(),
-          status.component.file_info {
-            filetype = {},
-            filename = false,
-            file_modified = false,
-          },
+          status.component.file_info { filetype = {}, filename = false, file_modified = false },
           status.component.git_diff(),
           status.component.diagnostics(),
           status.component.fill(),
           status.component.cmd_info(),
           status.component.fill(),
           status.component.lsp(),
-          status.component.treesitter(),
+          status.component.compiler_state(),
+          status.component.virtual_env(),
+          --status.component.file_encoding(), -- uncomment to enable
           status.component.nav(),
           status.component.mode { surround = { separator = "right" } },
         },
-        winbar = {
-                   -- winbar
+        winbar = { -- winbar
           init = function(self) self.bufnr = vim.api.nvim_get_current_buf() end,
           fallthrough = false,
           {
-            condition = function()
-              return not status.condition.is_active() -- Condition to show breadcrumrs
-            end,
+            condition = function() return not status.condition.is_active() end,
             status.component.separated_path(),
-            -- Comment the block below to hide the breadcrumbs while unfocused.
-            -- But you won't know the buffer name then while unfocused.
-            -- This is specially important as we currently use a single status bar.
             status.component.file_info {
-              file_icon = {
-                hl = status.hl.file_icon "winbar",
-                padding = { left = 0 },
-              },
+              file_icon = { hl = status.hl.file_icon "winbar", padding = { left = 0 } },
               file_modified = false,
               file_read_only = false,
               hl = status.hl.get_attributes("winbarnc", true),
@@ -307,51 +322,37 @@ return {
               update = "BufEnter",
             },
           },
-          status.component.breadcrumbs {
-            hl = status.hl.get_attributes("winbar", true),
-          },
+          status.component.breadcrumbs { hl = status.hl.get_attributes("winbar", true) },
         },
         tabline = { -- bufferline
-          {
-                    -- file tree padding
+          { -- file tree padding
             condition = function(self)
               self.winid = vim.api.nvim_tabpage_list_wins(0)[1]
               return status.condition.buffer_matches(
-                { filetype = { "aerial", "dapui_.", "neo%-tree", "NvimTree" } },
+                {
+                  filetype = {
+                  "aerial", "dapui_.", "dap-repl", "neo%-tree", "NvimTree", "edgy"
+                  }
+                },
                 vim.api.nvim_win_get_buf(self.winid)
               )
             end,
-            provider = function(self)
-              return string.rep(
-                " ",
-                vim.api.nvim_win_get_width(self.winid) + 1
-              )
-            end,
+            provider = function(self) return string.rep(" ", vim.api.nvim_win_get_width(self.winid) + 1) end,
             hl = { bg = "tabline_bg" },
           },
-          -- component for each buffer tab
-          status.heirline.make_buflist(status.component.tabline_file_info()),
-          -- fill the rest of the tabline with background color
-          status.component.fill { hl = { bg = "tabline_bg" } },
-          {
-            -- tab list
-            -- only show tabs if there are more than one
-            condition = function() return #vim.api.nvim_list_tabpages() >= 2 end,
+          status.heirline.make_buflist(status.component.tabline_file_info()), -- component for each buffer tab
+          status.component.fill { hl = { bg = "tabline_bg" } }, -- fill the rest of the tabline with background color
+          { -- tab list
+            condition = function()
+              -- only show tabs if there are more than one
+              return #vim.api.nvim_list_tabpages() >= 2
+            end,
             status.heirline.make_tablist { -- component for each tab
               provider = status.provider.tabnr(),
-              hl = function(self)
-                return status.hl.get_attributes(
-                  status.heirline.tab_type(self, "tab"),
-                  true
-                )
-              end,
+              hl = function(self) return status.hl.get_attributes(status.heirline.tab_type(self, "tab"), true) end,
             },
-            {
-              -- close button for current tab
-              provider = status.provider.close_button {
-                kind = "TabClose",
-                padding = { left = 1, right = 1 },
-              },
+            { -- close button for current tab
+              provider = status.provider.close_button { kind = "TabClose", padding = { left = 1, right = 1 } },
               hl = status.hl.get_attributes("tab_close", true),
               on_click = {
                 callback = function() require("base.utils.buffer").close_tab() end,
@@ -393,6 +394,8 @@ return {
         local String = get_hlgroup("String", { fg = C.green, bg = C.dark_bg })
         local TypeDef =
             get_hlgroup("TypeDef", { fg = C.yellow, bg = C.dark_bg })
+        local NvimEnvironmentName =
+            get_hlgroup("NvimEnvironmentName", { fg = C.yellow, bg = C.dark_bg })
         local GitSignsAdd =
             get_hlgroup("GitSignsAdd", { fg = C.green, bg = C.dark_bg })
         local GitSignsChange =
@@ -433,6 +436,7 @@ return {
           git_branch_fg = Conditional.fg,
           mode_fg = StatusLine.bg,
           treesitter_fg = String.fg,
+          virtual_env_fg = NvimEnvironmentName.fg,
           scrollbar = TypeDef.fg,
           git_added = GitSignsAdd.fg,
           git_changed = GitSignsChange.fg,
@@ -488,6 +492,7 @@ return {
           "cmd_info",
           "treesitter",
           "nav",
+          "virtual_env",
         } do
           if not colors[section .. "_bg"] then
             colors[section .. "_bg"] = colors["section_bg"]
@@ -498,16 +503,61 @@ return {
         end
         return colors
       end
-
       heirline.load_colors(setup_colors())
       heirline.setup(opts)
 
-      local augroup = vim.api.nvim_create_augroup("Heirline", { clear = true })
-      vim.api.nvim_create_autocmd("User", {
-        group = augroup,
+      -- Autocmds --
+
+      -- 0. Apply colors defined above to heirline after applying a theme
+      vim.api.nvim_create_autocmd("ColorScheme", {
         desc = "Refresh heirline colors",
         callback = function()
           require("heirline.utils").on_colorscheme(setup_colors())
+        end,
+      })
+
+      -- 1. Update tabs when adding new buffers
+      vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter", "TabNewEntered" }, {
+        desc = "Update buffers when adding new buffers",
+        callback = function(args)
+          local buf_utils = require "base.utils.buffer"
+          if not vim.t.bufs then vim.t.bufs = {} end
+          if not buf_utils.is_valid(args.buf) then return end
+          if args.buf ~= buf_utils.current_buf then
+            buf_utils.last_buf = buf_utils.current_buf
+            buf_utils.current_buf = args.buf
+          end
+          local bufs = vim.t.bufs
+          if not vim.tbl_contains(bufs, args.buf) then
+            table.insert(bufs, args.buf)
+            vim.t.bufs = bufs
+          end
+          vim.t.bufs = vim.tbl_filter(buf_utils.is_valid, vim.t.bufs)
+          utils.event "BufsUpdated"
+        end,
+      })
+
+      -- 2. Update tabs when deleting buffers
+      vim.api.nvim_create_autocmd("BufDelete", {
+        desc = "Update buffers when deleting buffers",
+        callback = function(args)
+          local removed
+          for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
+            local bufs = vim.t[tab].bufs
+            if bufs then
+              for i, bufnr in ipairs(bufs) do
+                if bufnr == args.buf then
+                  removed = true
+                  table.remove(bufs, i)
+                  vim.t[tab].bufs = bufs
+                  break
+                end
+              end
+            end
+          end
+          vim.t.bufs = vim.tbl_filter(require("base.utils.buffer").is_valid, vim.t.bufs)
+          if removed then utils.event "BufsUpdated" end
+          vim.cmd.redrawtabline()
         end,
       })
     end,
@@ -516,9 +566,16 @@ return {
   --  Telescope [search] + [search backend] dependency
   --  https://github.com/nvim-telescope/telescope.nvim
   --  https://github.com/nvim-telescope/telescope-fzf-native.nvim
+  --  https://github.com/debugloop/telescope-undo.nvim
+  --  NOTE: Normally, plugins that depend on Telescope are defined separately.
+  --  But its Telescope extension is added in the Telescope 'config' section.
   {
     "nvim-telescope/telescope.nvim",
     dependencies = {
+      {
+        "debugloop/telescope-undo.nvim",
+        cmd = "Telescope",
+      },
       {
         "nvim-telescope/telescope-fzf-native.nvim",
         enabled = vim.fn.executable "make" == 1,
@@ -527,8 +584,8 @@ return {
     },
     cmd = "Telescope",
     opts = function()
-      local actions = require "telescope.actions"
       local get_icon = require("base.utils").get_icon
+      local actions = require "telescope.actions"
       local mappings = {
         i = {
           ["<C-n>"] = actions.cycle_history_next,
@@ -549,7 +606,7 @@ return {
           layout_config = {
             horizontal = {
               prompt_position = "top",
-              preview_width = 0.55,
+              preview_width = 0.50,
             },
             vertical = {
               mirror = false,
@@ -560,17 +617,71 @@ return {
           },
           mappings = mappings,
         },
+        extensions = {
+          undo = {
+            use_delta = true,
+            side_by_side = true,
+            diff_context_lines = 0,
+            entry_format = "󰣜 #$ID, $STAT, $TIME",
+            layout_strategy = "horizontal",
+            layout_config = {
+              preview_width = 0.65,
+            },
+            mappings = {
+              i = {
+                ["<cr>"] = require("telescope-undo.actions").yank_additions,
+                ["<S-cr>"] = require("telescope-undo.actions").yank_deletions,
+                ["<C-cr>"] = require("telescope-undo.actions").restore,
+              },
+            },
+          },
+        },
       }
     end,
     config = function(_, opts)
       local telescope = require "telescope"
       telescope.setup(opts)
-      local utils = require "base.utils"
-      local conditional_func = utils.conditional_func
-      conditional_func(
+      -- Here we define the Telescope extension for all plugins.
+      -- If you delete a plugin, you can also delete its Telescope extension.
+      utils.conditional_func(
+        telescope.load_extension,
+        utils.is_available "nvim-notify",
+        "notify"
+      )
+      utils.conditional_func(
         telescope.load_extension,
         utils.is_available "telescope-fzf-native.nvim",
         "fzf"
+      )
+      utils.conditional_func(
+        telescope.load_extension,
+        utils.is_available "telescope-undo.nvim",
+        "undo"
+      )
+      utils.conditional_func(
+        telescope.load_extension,
+        utils.is_available "nvim-neoclip.lua",
+        "neoclip"
+      )
+      utils.conditional_func(
+        telescope.load_extension,
+        utils.is_available "nvim-neoclip.lua",
+        "macroscope"
+      )
+      utils.conditional_func(
+        telescope.load_extension,
+        utils.is_available "project.nvim",
+        "projects"
+      )
+      utils.conditional_func(
+        telescope.load_extension,
+        utils.is_available "LuaSnip",
+        "luasnip"
+      )
+      utils.conditional_func(
+        telescope.load_extension,
+        utils.is_available "aerial.nvim",
+        "aerial"
       )
     end,
   },
@@ -587,17 +698,51 @@ return {
       )
     end,
     opts = {
-      input = {
-        default_prompt = "➤ ",
-        win_options = { winhighlight = "Normal:Normal,NormalNC:Normal" },
-      },
-      select = {
-        backend = { "telescope", "builtin" },
-        builtin = {
-          win_options = { winhighlight = "Normal:Normal,NormalNC:Normal" },
-        },
-      },
+      input = { default_prompt = "➤ "},
+      select = { backend = { "telescope", "builtin" } },
     },
+  },
+
+  --  Noice.nvim [better cmd/search line]
+  --  https://github.com/folke/noice.nvim
+  --  We use it for:
+  --  * cmdline: Display treesitter for :
+  --  * search: Display a magnifier instead of /
+  --
+  --  We don't use it for:
+  --  * LSP status: We use a heirline component for this.
+  --  * Search results: We use a heirline component for this.
+  {
+    "folke/noice.nvim",
+    event = "VeryLazy",
+    opts = function()
+      local enable_conceal = false          -- Hide command text if true
+      return {
+        presets = { bottom_search = true }, -- The kind of popup used for /
+        cmdline = {
+          view = "cmdline",                 -- The kind of popup used for :
+          format= {
+            cmdline =     { conceal = enable_conceal },
+            search_down = { conceal = enable_conceal },
+            search_up =   { conceal = enable_conceal },
+            filter =      { conceal = enable_conceal },
+            lua =         { conceal = enable_conceal },
+            help =        { conceal = enable_conceal },
+            input =       { conceal = enable_conceal },
+          }
+        },
+
+        -- Disable every other noice feature
+        messages = { enabled = false },
+        lsp = {
+          hover = { enabled = false },
+          signature = { enabled = false },
+          progress = { enabled = false },
+          message = { enabled = false },
+          smart_move = { enabled = false },
+        },
+      }
+    end
   },
 
   --  UI icons [icons]
@@ -648,10 +793,10 @@ return {
         TypeParameter = "󰊄",
         Unit = "",
       },
+      menu = {},
     },
     enabled = vim.g.icons_enabled,
     config = function(_, opts)
-      base.lspkind = opts
       require("lspkind").init(opts)
     end,
   },
@@ -660,14 +805,22 @@ return {
   --  https://github.com/petertriho/nvim-scrollbar
   {
     "petertriho/nvim-scrollbar",
+    event = "User BaseFile",
     opts = {
       handlers = {
         gitsigns = true, -- gitsigns integration (display hunks)
         ale = true,      -- lsp integration (display errors/warnings)
         search = false,  -- hlslens integration (display search result)
       },
+      excluded_filetypes = {
+        "cmp_docs",
+        "cmp_menu",
+        "noice",
+        "prompt",
+        "TelescopePrompt",
+        "alpha",
+      },
     },
-    event = "User BaseFile",
   },
 
   --  mini.animate [animations]
@@ -676,8 +829,8 @@ return {
   --        disable it during the keybinding using vim.g.minianimate_disable = true
   {
     "echasnovski/mini.animate",
-    event = "VeryLazy",
-    -- enabled = false,
+    event = "User BaseFile",
+    enabled = not android,
     opts = function()
       -- don't use animate when scrolling with the mouse
       local mouse_scrolled = false
@@ -691,6 +844,7 @@ return {
 
       local animate = require "mini.animate"
       return {
+        open = { enable = false }, -- causes issues on spectre toggle.
         resize = {
           timing = animate.gen_timing.linear { duration = 33, unit = "total" },
         },
@@ -716,7 +870,8 @@ return {
 
   --  highlight-undo
   --  https://github.com/tzachar/highlight-undo.nvim
-  --  BUG: Currently only works for redo.
+  --  This plugin only flases on redo.
+  --  But we also have a autocmd to flash on undo.
   {
     "tzachar/highlight-undo.nvim",
     event = "VeryLazy",
@@ -728,10 +883,19 @@ return {
         { "n", "<C-r>", "redo", {} },
       },
     },
-    config = function(_, opts) require("highlight-undo").setup(opts) end,
+    config = function(_, opts)
+      require("highlight-undo").setup(opts)
+
+      -- Also flash on undo.
+      vim.api.nvim_create_autocmd("TextYankPost", {
+        desc = "Highlight yanked text",
+        pattern = "*",
+        callback = function() vim.highlight.on_yank() end,
+      })
+    end,
   },
 
-  --  [on-screen keybindings]
+  --  which-key.nvim [on-screen keybindings]
   --  https://github.com/folke/which-key.nvim
   {
     "folke/which-key.nvim",
@@ -745,4 +909,6 @@ return {
       require("base.utils").which_key_register()
     end,
   },
+
+
 }
