@@ -62,7 +62,7 @@ local options = {
     colorcolumn = "80", -- PEP8 like character limit vertical bar.
     mousescroll = "ver:1,hor:0", -- Disables hozirontal scroll in neovim.
     guicursor = "n:blinkon200,i-ci-ve:ver25", -- Enable cursor blink.
-    autochdir = true, -- Use current file dir as working dir (See project.nvim).
+    autochdir = false, -- Use current file dir as working dir (See project.nvim).
     scrolloff = 1000, -- Number of lines to leave before/after the cursor when scrolling. Setting a high value keep the cursor centered.
     sidescrolloff = 8, -- Same but for side scrolling.
     selection = "old", -- Don't select the newline symbol when using <End> on visual mode.
@@ -73,8 +73,8 @@ local options = {
     big_file = { size = 1024 * 100, lines = 10000 }, -- For files bigger than this, disable 'treesitter'.
 
     -- All these options are toggleable with <space + l + u>
-    autoformat_enabled = false, -- Enable auto formatting at start.
-    autopairs_enabled = false, -- Enable autopairs at start.
+    autoformat_enabled = true, -- Enable auto formatting at start.
+    autopairs_enabled = true, -- Enable autopairs at start.
     cmp_enabled = true, -- Enable completion at start.
     codelens_enabled = true, -- Enable automatic codelens refreshing for lsp that support it.
     diagnostics_mode = 3, -- Set code linting (0=off, 1=only show in status line, 2=virtual text off, 3=all on).
