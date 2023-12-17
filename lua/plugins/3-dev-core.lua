@@ -55,7 +55,7 @@ return {
     },
     build = ":TSUpdate",
     opts = {
-      auto_install = false, -- Currently bugged. Use [:TSInstall all] and [:TSUpdate all]
+      auto_install = true,
       autotag = { enable = true },
       context_commentstring = { enable = true, enable_autocmd = false },
       highlight = {
